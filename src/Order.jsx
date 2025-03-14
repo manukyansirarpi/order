@@ -30,6 +30,7 @@ export default function Order({
     const response = await fetch("/api/pizzas");
     const pizzas = await response.json();
     setPizzas(pizzas);
+    setSelectedPizza(pizzas.length > 0 ? pizzas[0].id : "");
     setLoading(false);
   };
 
@@ -39,10 +40,31 @@ export default function Order({
 
   const isLoading = loading || externalLoading;
 
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    if (!pizza) return;
+
+    const newItem = {
+      pizza,
+      size: pizzaSize,
+      price: pizza.sizes[pizzaSize],
+      id: Date.now(), // Add a unique ID for better tracking
+    };
+
+    setCart([...cart, newItem]);
+
+    // Show a brief animation
+    const button = e.target.querySelector('button[type="submit"]');
+    button.classList.add("added-to-cart");
+    setTimeout(() => {
+      button.classList.remove("added-to-cart");
+    }, 700);
+  };
+
   return (
     <div className="order-page">
       <div className="order">
-        <h2>Create Order</h2>
+        <h2>Create Your Perfect Pizza</h2>
         {orderStatus === "success" && (
           <div className="order-success">
             <p>Your order has been placed successfully!</p>
@@ -53,20 +75,20 @@ export default function Order({
             <p>There was an error processing your order. Please try again.</p>
           </div>
         )}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setCart([...cart, { pizza, size: pizzaSize, price }]);
-          }}
-        >
+        <form onSubmit={handleAddToCart}>
           <div>
-            <div>
-              <label htmlFor="pizza-type">Pizza Type</label>
+            <div className="form-group">
+              <label htmlFor="pizza-type">Choose Your Pizza</label>
               <select
                 name="pizza-type"
+                id="pizza-type"
                 value={selectedPizza}
                 onChange={(e) => setSelectedPizza(e.target.value)}
+                disabled={isLoading}
               >
+                {pizzas.length === 0 && (
+                  <option value="">Loading pizzas...</option>
+                )}
                 {pizzas.map((pizza) => (
                   <option value={pizza.id} key={pizza.id}>
                     {pizza.name}
@@ -74,9 +96,9 @@ export default function Order({
                 ))}
               </select>
             </div>
-            <div>
-              <label htmlFor="pizza-size">Pizza Size</label>
-              <div>
+            <div className="form-group">
+              <label htmlFor="pizza-size">Select Size</label>
+              <div className="size-options">
                 <span>
                   <input
                     checked={pizzaSize === "S"}
@@ -85,6 +107,7 @@ export default function Order({
                     value="S"
                     id="pizza-s"
                     onChange={(e) => setPizzaSize(e.target.value)}
+                    disabled={isLoading}
                   />
                   <label htmlFor="pizza-s">Small</label>
                 </span>
@@ -96,6 +119,7 @@ export default function Order({
                     value="M"
                     id="pizza-m"
                     onChange={(e) => setPizzaSize(e.target.value)}
+                    disabled={isLoading}
                   />
                   <label htmlFor="pizza-m">Medium</label>
                 </span>
@@ -107,26 +131,45 @@ export default function Order({
                     value="L"
                     id="pizza-l"
                     onChange={(e) => setPizzaSize(e.target.value)}
+                    disabled={isLoading}
                   />
                   <label htmlFor="pizza-l">Large</label>
                 </span>
               </div>
             </div>
-            <button type="submit">Add to Cart</button>
+            <button
+              type="submit"
+              disabled={isLoading || !pizza}
+              className="add-to-cart-btn"
+            >
+              <span className="btn-text">Add to Cart</span>
+              <span className="btn-icon">🍕</span>
+            </button>
           </div>
 
           {isLoading && orderStatus !== "success" && orderStatus !== "error" ? (
-            <h3>loading...</h3>
+            <div className="loading">
+              <span className="loading-text">Loading delicious pizzas...</span>
+            </div>
           ) : (
             <div className="order-pizza">
-              <Pizza {...pizza}></Pizza>
-              <p>{price}</p>
+              {pizza && (
+                <>
+                  <Pizza {...pizza}></Pizza>
+                  <div className="price-tag">
+                    <span className="price-label">Price:</span>
+                    <span className="price-value">{intl.format(price)}</span>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </form>
       </div>
       {isLoading && orderStatus !== "success" && orderStatus !== "error" ? (
-        <h2>loading ...</h2>
+        <div className="loading-cart">
+          <div className="loading"></div>
+        </div>
       ) : (
         <Cart cart={cart} checkout={checkout} />
       )}
