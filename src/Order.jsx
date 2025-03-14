@@ -9,7 +9,11 @@ const intl = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
 });
 
-export default function Order() {
+export default function Order({
+  checkout,
+  orderStatus,
+  loading: externalLoading,
+}) {
   const [pizzas, setPizzas] = useState([]);
   const [cart, setCart] = useContext(CartContext);
   const [loading, setLoading] = useState(true);
@@ -33,31 +37,25 @@ export default function Order() {
     fetchPizzas();
   }, []);
 
-  async function checkout() {
-    setLoading(true);
-
-    await fetch("/api/order", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        cart,
-      }),
-    });
-
-    setCart([]);
-    setLoading(false);
-  }
+  const isLoading = loading || externalLoading;
 
   return (
     <div className="order-page">
       <div className="order">
         <h2>Create Order</h2>
+        {orderStatus === "success" && (
+          <div className="order-success">
+            <p>Your order has been placed successfully!</p>
+          </div>
+        )}
+        {orderStatus === "error" && (
+          <div className="order-error">
+            <p>There was an error processing your order. Please try again.</p>
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            console.log(cart);
             setCart([...cart, { pizza, size: pizzaSize, price }]);
           }}
         >
@@ -117,7 +115,7 @@ export default function Order() {
             <button type="submit">Add to Cart</button>
           </div>
 
-          {loading ? (
+          {isLoading && orderStatus !== "success" && orderStatus !== "error" ? (
             <h3>loading...</h3>
           ) : (
             <div className="order-pizza">
@@ -127,7 +125,7 @@ export default function Order() {
           )}
         </form>
       </div>
-      {loading ? (
+      {isLoading && orderStatus !== "success" && orderStatus !== "error" ? (
         <h2>loading ...</h2>
       ) : (
         <Cart cart={cart} checkout={checkout} />
